@@ -12,14 +12,13 @@ permissions:
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup JDK 17
+      - name: Setup JDK
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -29,21 +28,20 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
-
       - name: Install Android SDK
         run: |
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
       - name: Make Gradle executable
-        run: chmod +x gradlew
+        run: chmod +x ./gradlew
+
+      - name: Verify Gradle
+        run: ./gradlew --version
 
       - name: Build Debug APK
         run: |
@@ -55,8 +53,7 @@ jobs:
       - name: Find APK
         if: always()
         run: |
-          echo "=== APK files ==="
-          find . -type f -name "*.apk" -print || true
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
         if: success()
@@ -64,6 +61,6 @@ jobs:
         with:
           name: Deepdrop-debug
           path: |
-            app/build/outputs/apk/**/*.apk
+            **/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
