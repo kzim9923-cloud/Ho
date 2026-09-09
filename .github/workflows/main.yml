@@ -1,65 +1,69 @@
-name: Build Android APK
+name: Build Deepdrop APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "**"
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build-apk:
+  build:
     name: Build APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
-      - name: Install Android SDK packages
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android SDK
         run: |
-          sdkmanager --install \
+          sdkmanager \
             "platform-tools" \
-            "platforms;android-36" \
-            "build-tools;36.0.0"
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Show environment
-        run: |
-          java -version
-          ./gradlew --version
+        run: chmod +x gradlew
 
       - name: Build Debug APK
         run: |
           ./gradlew :app:assembleDebug \
             --no-daemon \
-            --stacktrace
+            --stacktrace \
+            --warning-mode all
 
-      - name: List APKs
+      - name: Find APK
         if: always()
         run: |
-          find app/build/outputs/apk -type f -name "*.apk" -print || true
+          echo "=== APK files ==="
+          find . -type f -name "*.apk" -print || true
 
-      - name: Upload APK artifacts
+      - name: Upload APK
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: Deepdrop-debug-apks
-          path: app/build/outputs/apk/**/*.apk
+          name: Deepdrop-debug
+          path: |
+            app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
